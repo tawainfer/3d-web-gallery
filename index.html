@@ -1,0 +1,278 @@
+<!--
+  index.html
+  https://tawainfer.github.io/3d-web-gallery/
+
+  (c) 2021 Yuki Iwata
+
+  Released under the MIT License.
+  https://github.com/tawainfer/3d-web-gallery/blob/main/LICENSE
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Web Gallery</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="three-r124-min.js"></script>
+  <script src="camera-controls-easy.js"></script>
+  <script>
+    CameraControls.install({
+      THREE: THREE
+    });
+
+    //テクスチャ保管場所
+    let tex = [
+      "imgs/pic1.jpg",
+      "imgs/pic2.jpg",
+      "imgs/pic3.jpg",
+      "imgs/pic4.jpg",
+      "imgs/pic5.jpg",
+      "imgs/pic6.jpg",
+      "imgs/pic7.jpg",
+      "imgs/pic8.jpg",
+      "imgs/pic9.jpg",
+      "imgs/pic10.jpg",
+      "imgs/pic11.jpg",
+      "imgs/pic12.jpg",
+      "imgs/pic13.jpg",
+      "imgs/pic14.jpg",
+    ]
+
+    //画像の読み込み準備
+    const loader = new THREE.TextureLoader();
+
+    //ファイル形式を後方一致で確認(画像と動画の判別)
+    let ptn = "mp4";
+    for (i = 0; i < tex.length; i++) {
+      if (tex[i].endsWith(ptn)) {
+        let vid = document.createElement("video");
+        vid.src = tex[i];
+        vid.muted = false;
+        vid.loop = true;
+        vid.load();
+        tex[i] = new THREE.VideoTexture(vid);
+        tex[i].minFilter = THREE.LinearFilter;
+        tex[i].magFilter = THREE.LinearFilter;
+        tex[i].format = THREE.RGBFormat;
+      } else {
+        tex[i] = loader.load(tex[i]);
+      }
+    }
+
+    //ここから基本設定
+    const clock = new THREE.Clock();
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 10 ** 5);
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xeeeeee);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const light1 = new THREE.AmbientLight(0xffffff, 0.01);
+    scene.add(light1);
+
+    //new THREE.SpotLight(色, 光の強さ, 距離, 照射角, ボケ具合, 減衰率)
+    const light2 = new THREE.SpotLight(0x66cdaa, 1, 5000, Math.PI / 2.5, 0, 0);
+    light2.position.set(0, 0, 0);
+    light2.target.position.set(0, 5000, 0);
+    scene.add(light2);
+    scene.add(light2.target);
+
+    const cameraControls = new CameraControls(camera, renderer.domElement);
+    cameraControls.truckSpeed = 30;
+    //cameraControls.rotatePolarTo(Math.PI / 2, false);
+    cameraControls.verticalDragToForward = true;
+    cameraControls.setLookAt(0, 200, 0, -200, 200, 0);
+    renderer.render(scene, camera);
+
+    //天井
+    let ceiling = new THREE.Mesh(
+      new THREE.PlaneGeometry(10000, 10000),
+      new THREE.MeshBasicMaterial({
+        color: 0xf8f8ff
+      })
+    );
+    ceiling.position.set(0, 5000, 0);
+    ceiling.rotation.x = Math.PI * 0.5;
+    scene.add(ceiling);
+
+    //天井枠
+    let frameGeometry = new THREE.Geometry();
+    let frame1 = new THREE.Mesh(new THREE.BoxGeometry(10000, 100, 100));
+    let frame2 = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 10000));
+    for (i = 0; i < 9; i++) {
+      frame1.position.set(0, 4900, i * 1000 - 4000);
+      frame2.position.set(i * 1000 - 4000, 4900, 0);
+      frameGeometry.mergeMesh(frame1);
+      frameGeometry.mergeMesh(frame2);
+    }
+    let frameMaterial = new THREE.MeshPhongMaterial({
+      color: 0xc0c0c0,
+      shininess: 100
+    });
+    let frameMesh = new THREE.Mesh(frameGeometry, frameMaterial);
+    frameMesh.receiveShadow = true;
+    scene.add(frameMesh);
+
+    //床
+    let floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(10000, 10000),
+      new THREE.MeshLambertMaterial({
+        color: 0x020436
+      })
+    );
+    floor.position.set(0, 0, 0);
+    floor.rotation.x = Math.PI * 1.5;
+    scene.add(floor);
+
+    //壁
+    let wallGeometry = new THREE.Geometry();
+    let wall = [
+      new THREE.Mesh(new THREE.BoxGeometry(2, 5000, 10000)),
+      new THREE.Mesh(new THREE.BoxGeometry(2, 5000, 10000)),
+      new THREE.Mesh(new THREE.BoxGeometry(10000, 5000, 2)),
+      new THREE.Mesh(new THREE.BoxGeometry(10000, 5000, 2)),
+    ]
+
+    wall[0].position.set(5000, 2500, 0);
+    wall[1].position.set(-5000, 2500, 0);
+    wall[2].position.set(0, 2500, 5000);
+    wall[3].position.set(0, 2500, -5000);
+
+    for (i = 0; i < wall.length; i++) wallGeometry.mergeMesh(wall[i]);
+
+    wallGeometry.mergeVertices();
+    let wallMaterial = new THREE.MeshLambertMaterial({
+      color: 0xffffff
+    });
+    let wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+    scene.add(wallMesh);
+
+    //テクスチャの枚数(配列の要素数)を取得しart配列(作品を貼るオブジェクト)を作成
+    let art = new Array(tex.length);
+
+    //art[i](i番目の作品)の幅
+    let art_width = [
+      2048, 2048, 2048,
+      1024, 1024, 1024, 1024,
+      2048, 2048, 2048,
+      1024, 1024, 1024, 1024,
+    ]
+
+    //art[i]の高さ
+    let art_height = [
+      1536, 1536, 1536,
+      1820, 1820, 1820, 1820,
+      1536, 1536, 1536,
+      1820, 1820, 1820, 1820,
+    ]
+
+    //art[i]のX座標
+    let art_posX = [
+      -3250, 0, 3250,
+      4975, 4975, 4975, 4975,
+      -3250, 0, 3250,
+      -4975, -4975, -4975, -4975,
+    ]
+
+    //art[i]のY座標
+    let art_posY = [
+      1300, 1300, 1300,
+      1500, 1500, 1500, 1500,
+      1300, 1300, 1300,
+      1500, 1500, 1500, 1500,
+    ]
+
+    //art[i]のZ座標
+    let art_posZ = [
+      -4975, -4975, -4975,
+      -3500, -1200, 1200, 3500,
+      4975, 4975, 4975,
+      -3500, -1200, 1200, 3500,
+    ]
+
+    //art[i]をY軸中心に回転(作品を壁の向きに合わせる)
+    let art_rotY = [
+      0, 0, 0,
+      Math.PI * 1.5,
+      Math.PI * 1.5,
+      Math.PI * 1.5,
+      Math.PI * 1.5,
+      Math.PI,
+      Math.PI,
+      Math.PI,
+      Math.PI * 0.5,
+      Math.PI * 0.5,
+      Math.PI * 0.5,
+      Math.PI * 0.5,
+    ]
+
+    //art[i]の大きさを変更(デフォルトは1、縮小・拡大する倍率を指定)
+    let art_scale = [
+      1.2, 1.2, 1.2,
+      1.2, 1.2, 1.2, 1.2,
+      1.2, 1.2, 1.2,
+      1.2, 1.2, 1.2, 1.2,
+    ]
+
+    //作品を貼り付けたオブジェクトをi個作成
+    for (i = 0; i < tex.length; i++) {
+      art[i] = new THREE.Mesh(
+        new THREE.BoxGeometry(art_width[i], art_height[i], 50),
+        [
+          new THREE.MeshLambertMaterial({ color: 0x001100 }),
+          new THREE.MeshLambertMaterial({ color: 0x001100 }),
+          new THREE.MeshLambertMaterial({ color: 0x001100 }),
+          new THREE.MeshLambertMaterial({ color: 0x001100 }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, map: tex[i] }),
+          new THREE.MeshLambertMaterial({ color: 0x001100 }),
+        ]
+      );
+      art[i].position.set(art_posX[i], art_posY[i], art_posZ[i]);
+      art[i].rotation.set(0, art_rotY[i], 0);
+      art[i].scale.set(art_scale[i], art_scale[i], 1);
+      scene.add(art[i]);
+    }
+
+    //毎フレーム描画
+    animate();
+    function animate() {
+      const delta = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+      cameraControls.update(delta);
+
+      onResize();
+      //リサイズイベント発生時に実行
+      window.addEventListener('resize', onResize);
+      function onResize() {
+        //レンダラーのサイズを調整する
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        //カメラのアスペクト比を正す
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      }
+
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+
+</html>
